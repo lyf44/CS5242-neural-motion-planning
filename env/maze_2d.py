@@ -13,7 +13,7 @@ from my_planar_robot import MyPlanarRobot
 import pb_ompl
 # from config import ROOT_DI
 
-ROOT_DIR = osp.join(osp.dirname(osp.abspath(__file__)), "../../")
+ROOT_DIR = osp.join(osp.dirname(osp.abspath(__file__)), "../")
 DATASET_DIR = osp.join(ROOT_DIR, "dataset")
 
 # -------------- Settings ----------------
