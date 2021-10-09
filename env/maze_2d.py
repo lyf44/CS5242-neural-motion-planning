@@ -9,8 +9,7 @@ import json
 import sys
 import os.path as osp
 
-from my_planar_robot import MyPlanarRobot
-import pb_ompl
+from env.my_planar_robot import MyPlanarRobot
 # from config import ROOT_DI
 
 ROOT_DIR = osp.join(osp.dirname(osp.abspath(__file__)), "../")
@@ -23,11 +22,6 @@ MAZE_SIZE = 5
 OCC_GRID_RESOLUTION = 0.1
 
 class Maze2D():
-    EMPTY = 0
-    GAP_ONLY = 1
-    BOX_ONLY = 2
-    GAP_AND_BOX = 3
-
     def __init__(self, gui=True):
         self.obstacles = []
 
@@ -51,7 +45,7 @@ class Maze2D():
 
         # 2d occupancy grid
         self.occ_grid_size = int(MAZE_SIZE / OCC_GRID_RESOLUTION)
-        self.occ_grid = np.zeros((1, self.occ_grid_size, self.occ_grid_size), dtype=np.uint8)
+        self.occ_grid = np.zeros((self.occ_grid_size, self.occ_grid_size), dtype=np.uint8)
         self.small_occ_grid_size = 10
 
         # add surrounding walls
@@ -69,16 +63,6 @@ class Maze2D():
         wall4 = self.add_box([0, -half_size - 0.1, 1], [half_size, 0.1, 1])
         self.default_obstacles = [wall1, wall2, wall3, wall4]
 
-        # set up pb_ompl
-        self.pb_ompl_interface = pb_ompl.PbOMPL(self.robot, self.obstacles)
-        self.pb_ompl_interface.set_planner("RRTDof")
-        self.pb_ompl_interface.planner.setRange(10)
-
-        # self.pb_ompl_interface_2 = pb_ompl.PbOMPL(self.robot, self.obstacles)
-        # self.pb_ompl_interface_2.set_planner("PRM")
-        # self.pb_ompl_interface_2.interpolate_num = 0
-        self.pb_ompl_interface_2 = pb_ompl.PbOMPLPRM(self.robot, self.obstacles)
-
         # internal attributes
         self.goal_robot_id = None
         self.path = None
@@ -94,87 +78,26 @@ class Maze2D():
         self.occ_grid.fill(0)
         self.obstacles = self.default_obstacles.copy()
         self.obstacle_dict = {}
-        self.pb_ompl_interface.set_obstacles(self.obstacles)
-        self.pb_ompl_interface_2.set_obstacles(self.obstacles)
 
-    def random_obstacles(self, mode=GAP_AND_BOX):
-        self.mode = mode
-        obstacles = []
+    def random_obstacles(self, num_of_boxes = 8):
+        # add random obstacles with boxes.
+        # box_positions = [(-2.25, 2.25)]
+        box_positions = []
 
-        # half_size = MAZE_SIZE / 2.0
-        # # add wall
-        # # colBoxId = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.1, 5, 1])
-        # # wall1 = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=colBoxId, basePosition=[5, 0, 1])
-        # # wall2 = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=colBoxId, basePosition=[-5, 0, 1])
-        # wall1 = self.add_box([half_size + 0.1, 0, 1], [0.1, half_size, 1])
-        # wall2 = self.add_box([-half_size - 0.1, 0, 1], [0.1, half_size, 1])
-        # # colBoxId = p.createCollisionShape(p.GEOM_BOX, halfExtents=[5, 0.1, 1])
-        # # wall3 = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=colBoxId, basePosition=[0, 5, 1])
-        # # wall4 = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=colBoxId, basePosition=[0, -5, 1])
-        # wall3 = self.add_box([0, half_size + 0.1, 1], [half_size, 0.1, 1])
-        # wall4 = self.add_box([0, -half_size - 0.1, 1], [half_size, 0.1, 1])
+        for _ in range(num_of_boxes):
+            x = random.randint(0, 4)
+            y = random.randint(0, 4)
+            x = x - 2
+            y = y - 2
+            box_positions.append((x, y))
 
-        if mode == Maze2D.GAP_ONLY or mode == Maze2D.GAP_AND_BOX:
-            # random sample gap
-            if RANDOM:
-                vertical = random.randint(0, 1)
-                if vertical:
-                    x = random.randint(0, 9)
-                    y = random.randint(0, 8)
-                    gap1_pos = [0.5 * x - 2.25, 0.5 * y - 2]
-                # gap1_pos = [random.randrange(-half_size + 1, half_size - 1), random.randrange(-half_size + 1, half_size - 1)]
-                # gap2_pos_1 = random.randrange(-half_size + 0.5, half_size - 0.5)
-                # while gap2_pos_1 > gap1_pos[1] - 0.5 and gap2_pos_1 < gap1_pos[1] + 0.5:
-                #     gap2_pos_1 = random.randrange(-half_size + 0.5, half_size - 0.5)
-                # gap2_pos = [random.randrange(-half_size + 0.5, gap1_pos[0] - 0.5), gap2_pos_1]
-                # gap3_pos = [random.randrange(gap1_pos[0] + 0.5, half_size - 0.5), gap2_pos_1]
-                else:
-                    x = random.randint(0, 8)
-                    y = random.randint(0, 9)
-                    gap1_pos = [0.5 * x - 2, 0.5 * y - 2.25]
-            else:
-                gap1_pos = [0.5, 0.25]
-                vertical = 0
-                # gap2_pos = [-2, -2]
-                # gap3_pos = [2, -2]
+        # print(box_positions)
+        for box_pos in box_positions:
+            self.add_box([box_pos[0], box_pos[1], 0.5], [0.5, 0.5, 0.5])
 
-            self.add_gap(gap1_pos, vertical)
+        self.obstacle_dict["box"] = box_positions
 
-            self.obstacle_dict["gap"] = {}
-            self.obstacle_dict["gap"]["pos"] = gap1_pos
-            self.obstacle_dict["gap"]["vertical"] = vertical
-
-        if mode == Maze2D.BOX_ONLY or mode == Maze2D.GAP_AND_BOX:
-            # add random obstacles with boxes.
-            NUM_BOX = 5
-            box_positions = []
-            if RANDOM:
-                for _ in range(NUM_BOX):
-                    # x = random.uniform(-half_size, half_size)
-                    # y = random.uniform(-half_size, half_size)
-                    x = random.randint(0, 9)
-                    y = random.randint(0, 9)
-                    x = 0.5 * x - 2.25
-                    y = 0.5 * y - 2.25
-                    box_positions.append((x, y))
-            else:
-                NUM_BOX = 5
-                # box_positions.append([0.5, 0])
-                # box_positions.append([-0.5, 0])
-                box_positions.append([1.25, -1.25])
-                box_positions.append([0.75, -1.25])
-                box_positions.append([-1.25, -2.25])
-                box_positions.append([0.25, 2.25])
-                box_positions.append([-1.25, 1.25])
-
-            # print(box_positions)
-            for box_pos in box_positions:
-                self.add_box([box_pos[0], box_pos[1], 0.5], [0.25, 0.25, 0.5])
-
-            self.obstacle_dict["box"] = box_positions
-
-        self.pb_ompl_interface.set_obstacles(self.obstacles)
-        self.pb_ompl_interface_2.set_obstacles(self.obstacles)
+        self.get_inflated_occ_grid()
 
     def add_gap(self, gap_pos, vertical):
         half_size = MAZE_SIZE / 2.0
@@ -193,13 +116,13 @@ class Maze2D():
         # for occupancy grid, center is at upper left corner, unit is cm
         half_size = MAZE_SIZE / 2.0
         tmp = int(1 / OCC_GRID_RESOLUTION)
-        cx = int((-box_pos[1] + half_size) * tmp)
-        cy = int((box_pos[0] + half_size) * tmp)
-        x_size = int(half_box_size[1] * tmp)
-        y_size = int(half_box_size[0] * tmp)
-        for x in range(max(0, cx - x_size), min(self.occ_grid_size, cx + x_size)):
-            for y in range(max(0, cy - y_size), min(self.occ_grid_size, cy + y_size)):
-                self.occ_grid[0, x, y] = 255
+        cx = (-box_pos[1] + half_size) * tmp
+        cy = (box_pos[0] + half_size) * tmp
+        x_size = half_box_size[1] * tmp
+        y_size = half_box_size[0] * tmp
+        for x in range(max(0, int(cx - x_size)), min(self.occ_grid_size, int(cx + x_size))):
+            for y in range(max(0, int(cy - y_size)), min(self.occ_grid_size, int(cy + y_size))):
+                self.occ_grid[x, y] = 1
 
         self.obstacles.append(box_id)
 
@@ -212,7 +135,7 @@ class Maze2D():
         occ_grid_small = np.zeros((10, 10), dtype=np.int8)
         for i in range(10):
             for j in range(10):
-                occ_grid_small[i, j] = (np.max(self.occ_grid[0, i*5:(i+1)*5, j*5:(j+1)*5]) == 255)
+                occ_grid_small[i, j] = (np.max(self.occ_grid[i*5:(i+1)*5, j*5:(j+1)*5]) == 1)
 
         return occ_grid_small
 
@@ -224,10 +147,8 @@ class Maze2D():
             self.add_gap(obstacle_dict["gap"]["pos"], obstacle_dict["gap"]["vertical"])
         if "box" in obstacle_dict:
             for box_pos in obstacle_dict["box"]:
-                self.add_box([box_pos[0], box_pos[1], 0.5], [0.25, 0.25, 0.5])
+                self.add_box([box_pos[0], box_pos[1], 0.5], [0.5, 0.5, 0.5])
 
-        self.pb_ompl_interface.set_obstacles(self.obstacles)
-        self.pb_ompl_interface_2.set_obstacles(self.obstacles)
         self.obstacle_dict = obstacle_dict
 
     def sample_start_goal(self, load = False):
@@ -252,7 +173,7 @@ class Maze2D():
                     start[i] = random.uniform(low_bounds[i], high_bounds[i])
                     goal[i] = random.uniform(low_bounds[i], high_bounds[i])
 
-                if self.pb_ompl_interface_2.is_state_valid(start) and self.pb_ompl_interface_2.is_state_valid(goal):
+                if self.is_state_valid(start) and self.is_state_valid(goal):
                     self.start = start
                     self.goal = goal
                     break
@@ -280,69 +201,115 @@ class Maze2D():
         with open(osp.join(ROOT_DIR, "sg_pairs.json"), 'w') as f:
             json.dump(self.sg_pairs, f)
 
-    def plan(self, allowed_time=2.0, interpolate=False):
-        self.pb_ompl_interface.clear()
-        self.path = None
-        self.approx_path = None
+    # def plan(self, allowed_time=2.0, interpolate=False):
+    #     self.pb_ompl_interface.clear()
+    #     self.path = None
+    #     self.approx_path = None
 
-        self.robot.set_state(self.start)
-        res, path = self.pb_ompl_interface.plan(self.goal, allowed_time, interpolate)
-        if res:
-            self.path = path
-        elif path is not None:
-            self.approx_path = path
-        return res, path
+    #     self.robot.set_state(self.start)
+    #     res, path = self.pb_ompl_interface.plan(self.goal, allowed_time, interpolate)
+    #     if res:
+    #         self.path = path
+    #     elif path is not None:
+    #         self.approx_path = path
+    #     return res, path
 
-    def plan2(self, allowed_time=2.0, interpolate=False):
-        self.pb_ompl_interface_2.clear()
-        self.path = None
-        self.approx_path = None
+    # def plan2(self, allowed_time=2.0, interpolate=False):
+    #     self.pb_ompl_interface_2.clear()
+    #     self.path = None
+    #     self.approx_path = None
 
-        self.robot.set_state(self.start)
-        res, path = self.pb_ompl_interface_2.plan(self.goal, allowed_time, interpolate)
-        if res:
-            self.path = path
-        elif path is not None:
-            self.approx_path = path
-        return res, path
+    #     self.robot.set_state(self.start)
+    #     res, path = self.pb_ompl_interface_2.plan(self.goal, allowed_time, interpolate)
+    #     if res:
+    #         self.path = path
+    #     elif path is not None:
+    #         self.approx_path = path
+    #     return res, path
 
-    def execute(self):
-        if self.path is not None:
-            self.pb_ompl_interface.execute(self.path)
+    # def execute(self):
+    #     if self.path is not None:
+    #         self.pb_ompl_interface.execute(self.path)
 
-        elif self.approx_path is not None:
-            self.pb_ompl_interface.execute(self.approx_path)
+    #     elif self.approx_path is not None:
+    #         self.pb_ompl_interface.execute(self.approx_path)
 
-    def execute2(self):
-        if self.path is not None:
-            self.pb_ompl_interface_2.execute(self.path)
+    # def execute2(self):
+    #     if self.path is not None:
+    #         self.pb_ompl_interface_2.execute(self.path)
 
-        elif self.approx_path is not None:
-            self.pb_ompl_interface_2.execute(self.approx_path)
+    #     elif self.approx_path is not None:
+    #         self.pb_ompl_interface_2.execute(self.approx_path)
         # for _ in range(1200):
         #     # p.stepSimulation()
         #     time.sleep(1./ 240)
 
         # p.disconnect()
 
-    def visualize_goal(self, goal):
-        if self.goal_robot_id is not None:
-            p.removeBody(self.goal_robot_id)
-        robot_model_path = osp.join(ROOT_DIR, "my_planar_robot_model/urdf/my_planar_robot_4_link.xacro")
-        self.goal_robot_id = p.loadURDF(robot_model_path, (0,0,0))
-        robot = MyPlanarRobot(self.goal_robot_id)
-        robot.set_state(goal)
+    # def visualize_goal(self, goal):
+    #     if self.goal_robot_id is not None:
+    #         p.removeBody(self.goal_robot_id)
+    #     robot_model_path = osp.join(ROOT_DIR, "my_planar_robot_model/urdf/my_planar_robot_4_link.xacro")
+    #     self.goal_robot_id = p.loadURDF(robot_model_path, (0,0,0))
+    #     robot = MyPlanarRobot(self.goal_robot_id)
+    #     robot.set_state(goal)
 
-    def construct_prm(self, allowed_time=5.0, clear=True):
-        if clear:
-            self.pb_ompl_interface_2.clear()
-        self.pb_ompl_interface_2.construct_prm(allowed_time)
+    # def construct_prm(self, allowed_time=5.0, clear=True):
+    #     if clear:
+    #         self.pb_ompl_interface_2.clear()
+    #     self.pb_ompl_interface_2.construct_prm(allowed_time)
+
+    def get_inflated_occ_grid(self):
+        tmp = np.zeros((self.occ_grid_size + 2, self.occ_grid_size + 2), dtype=np.uint8)
+        tmp[:self.occ_grid_size, :self.occ_grid_size] += self.occ_grid
+        tmp[1:self.occ_grid_size + 1, :self.occ_grid_size] += self.occ_grid
+        tmp[2:, :self.occ_grid_size] += self.occ_grid
+        tmp[:self.occ_grid_size, 1:self.occ_grid_size+1] += self.occ_grid
+        tmp[1:self.occ_grid_size + 1, 1:self.occ_grid_size+1] += self.occ_grid
+        tmp[2:, 1:self.occ_grid_size+1] += self.occ_grid
+        tmp[:self.occ_grid_size, 2:] += self.occ_grid
+        tmp[1:self.occ_grid_size + 1, 2:] += self.occ_grid
+        tmp[2:, 2:] += self.occ_grid
+        tmp[tmp > 0] = 1
+
+        self.inflated_occ_grid = tmp[1:self.occ_grid_size + 1, 1:self.occ_grid_size + 1]
+
+    def is_state_valid(self, robot_state):
+        y, x = robot_state[0], robot_state[1]
+        x = int((MAZE_SIZE / 2.0 - x) / 0.1)
+        y = int((y + MAZE_SIZE / 2.0) / 0.1)
+
+        res = (self.inflated_occ_grid[x, y] != 1)
+        return res
 
 if __name__ == '__main__':
+    sys.path.insert(0, osp.join(osp.dirname(osp.abspath(__file__)), '../'))
+    import utils
+    import cv2
+
     maze = Maze2D()
-    maze.random_obstacles(mode=3)
-    maze.sample_start_goal()
-    maze.plan2(interpolate=True)
-    maze.execute2()
-    input("press anything")
-    print("here")
+    maze.random_obstacles()
+
+    occ_grid = maze.get_occupancy_grid()
+    # print(occ_grid)
+    tmp = np.copy(occ_grid).reshape(50, 50, 1)
+    tmp[tmp == 1] = 255
+    cv2.imshow("tmp", tmp)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+
+    occ_grid = maze.inflated_occ_grid
+    tmp = np.copy(occ_grid).reshape(50, 50, 1)
+    tmp[tmp == 1] = 255
+    cv2.imshow("tmp", tmp)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+
+    occ_grid = maze.get_small_occupancy_grid()
+    print(occ_grid.shape)
+    utils.visualize_nodes(occ_grid, [], None, None)
+
+    print(maze.is_state_valid([-1.9, 2.0]))
+    print(maze.is_state_valid([-1.9, 1.9]))
+    print(maze.is_state_valid([-2.0, 1.9]))
+    print(maze.is_state_valid([-2.0, 2.0]))

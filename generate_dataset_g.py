@@ -37,7 +37,7 @@ for i in range(env_num):
     print("generating traj in env {}".format(i))
     maze.clear_obstacles()
 
-    data_dir = osp.join(CUR_DIR, "../dataset/3/{}".format(i))
+    data_dir = osp.join(CUR_DIR, "./dataset/{}".format(i))
     with open(osp.join(data_dir, "obstacle_dict.json"), 'r') as f:
         obstacle_dict = json.load(f)
         maze.load_obstacle_dict(obstacle_dict)

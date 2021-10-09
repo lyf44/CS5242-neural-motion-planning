@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 def state_to_numpy(state):
     strlist = state.split(',')
@@ -39,16 +40,18 @@ def is_edge_free(maze, node1_state, node2_state, EDGE_DISCRETIZATION = 20, inc =
 
     for i in range(edge_discretization):
         nodepos = node1_pos + step * i
-        if not maze.pb_ompl_interface.is_state_valid(nodepos.tolist()):
+        if not maze.is_state_valid(nodepos.tolist()):
             return False
     return True
 
 def visualize_nodes(occ_g, curr_node_posns, start_pos, goal_pos, show=True, save=False, file_name=None):
-    fig1 = plt.figure(figsize=(10,6), dpi=80)
-    ax1 = fig1.add_subplot(111, aspect='equal')
+    fig1 = plt.figure(figsize=(10,10), dpi=100)
 
-    for i in range(10):
-        for j in range(10):
+    occ_grid_size = occ_g.shape[0]
+    tmp = occ_grid_size / 4.0 - 0.25
+    s = (10.0 / occ_grid_size * 100 / 2) ** 2 + 500
+    for i in range(occ_grid_size):
+        for j in range(occ_grid_size):
             if occ_g[i,j] == 1:
                 # ax1.add_patch(patches.Rectangle(
                 #     (i/10.0 - 2.5, j/10.0 - 2.5),   # (x,y)
@@ -56,7 +59,7 @@ def visualize_nodes(occ_g, curr_node_posns, start_pos, goal_pos, show=True, save
                 #     0.1,          # height
                 #     alpha=0.6
                 #     ))
-                plt.scatter(j/2.0 - 2.25, 2.25 - i/2.0, color="black", marker='s', s=1000, alpha=1) # init
+                plt.scatter(j/2.0 - tmp, tmp - i/2.0, color="black", marker='s', s=s, alpha=1) # init
 
     curr_node_posns = np.array(curr_node_posns)
     if len(curr_node_posns)>0:
@@ -83,21 +86,10 @@ def visualize_nodes(occ_g, curr_node_posns, start_pos, goal_pos, show=True, save
 
 def visualize_robot(robot_state, start=False, goal=False):
     base_x, base_y = robot_state[:2]
-    angle1 = robot_state[2]
-    angle2 = robot_state[3]
-
-    x1 = base_x + math.sin(angle1) * 0.5
-    y1 = base_y + math.cos(angle1) * 0.5
-
-    x2 = x1 + math.sin(angle2 + angle1) * 0.5
-    y2 = y1 + math.cos(angle2 + angle1) * 0.5
 
     if start:
-        plt.plot((base_x, x1), (base_y, y1), 'yo-')
-        plt.plot((x1, x2), (y1, y2), 'bo-')
+        plt.gca().add_patch(patches.Rectangle((base_x-0.1, base_y-0.1), 0.2, 0.2, facecolor='y'))
     elif goal:
-        plt.plot((base_x, x1), (base_y, y1), 'ro-')
-        plt.plot((x1, x2), (y1, y2), 'bo-')
+        plt.gca().add_patch(patches.Rectangle((base_x-0.1, base_y-0.1), 0.2, 0.2, facecolor='r'))
     else:
-        plt.plot((base_x, x1), (base_y, y1), 'go-')
-        plt.plot((x1, x2), (y1, y2), 'bo-')
+        plt.gca().add_patch(patches.Rectangle((base_x-0.1, base_y-0.1), 0.2, 0.2, facecolor='g'))

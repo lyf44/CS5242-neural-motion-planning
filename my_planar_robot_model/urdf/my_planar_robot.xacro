@@ -31,7 +31,8 @@
     </collision>
   </link>
 
-  <joint name="joint1" type="continuous">
+</robot>
+  <!-- <joint name="joint1" type="continuous">
     <origin rpy="0 1.57079632679 0" xyz="0 0 0.1"/>
     <parent link="base_link"/>
     <child link="arm_link1"/>
@@ -89,7 +90,7 @@
             <box size="0.1 0.5 0.1" />
         </geometry>
     </collision>
-  </link>
+  </link> -->
 
   <!-- ROS Control plugin for Gazebo -->
   <gazebo>
