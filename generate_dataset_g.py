@@ -34,10 +34,10 @@ start_num = 500
 # Generate trajectories
 dataset = []
 for i in range(env_num):
-    print("generating traj in env {}".format(i))
+    print("generating paths in env {}".format(i))
     maze.clear_obstacles()
 
-    data_dir = osp.join(CUR_DIR, "./dataset/{}".format(i))
+    data_dir = "./dataset/{}".format(i)
     with open(osp.join(data_dir, "obstacle_dict.json"), 'r') as f:
         obstacle_dict = json.load(f)
         maze.load_obstacle_dict(obstacle_dict)
@@ -54,8 +54,7 @@ for i in range(env_num):
             if dense_G.nodes[goal_n]['col']:
                 continue
 
-        goal_pos = state_to_numpy(dense_G.nodes[goal_n]['coords']).tolist()
-
+        goal_pos = utils.state_to_numpy(dense_G.nodes[goal_n]['coords']).tolist()
         path_nodes, dis = astar.astar(dense_G, start_n, goal_n, occ_grid, None, None, None)
 
         # sanity check
@@ -63,32 +62,37 @@ for i in range(env_num):
         if len(path_nodes) > 2:
             for i, node in enumerate(path_nodes):
                 if i < len(path_nodes) - 1:
-                    start_pos = state_to_numpy(dense_G.nodes[node]['coords']).tolist()
-                    next_pos = state_to_numpy(dense_G.nodes[path_nodes[i + 1]]['coords']).tolist()
+                    start_pos = utils.state_to_numpy(dense_G.nodes[node]['coords']).tolist()
+                    next_pos = utils.state_to_numpy(dense_G.nodes[path_nodes[i + 1]]['coords']).tolist()
                     dist = utils.calc_weight_states(start_pos, next_pos)
                     total_dist += dist
             # print(total_dist, dis)
             assert np.allclose(total_dist, dis)
 
         if len(path_nodes) > 2:
+            path = []
             for i, node in enumerate(path_nodes):
-                if i < len(path_nodes) - 1:
-                    start_pos = state_to_numpy(dense_G.nodes[node]['coords']).tolist()
-                    next_pos = state_to_numpy(dense_G.nodes[path_nodes[i + 1]]['coords']).tolist()
+                node_pos = utils.state_to_numpy(dense_G.nodes[node]['coords']).tolist()
+                path.append(node_pos)
 
-                    non_connectable_nodes = []
-                    for n in dense_G.nodes():
-                        if not dense_G.has_edge(n, path_nodes[i + 1]):
-                            non_connectable_nodes.append(state_to_numpy(dense_G.nodes[n]['coords']).tolist())
+            dataset.append([start_pos, goal_pos, occ_grid, path])
 
-                    dataset.append([start_pos, goal_pos, occ_grid, next_pos, non_connectable_nodes, dis])
-
-                    dist = utils.calc_weight_states(start_pos, next_pos)
-                    dis -= dist
-
-            assert np.allclose(dis, 0)
-
-with open(osp.join(CUR_DIR, "dataset/data_{}_g.json".format(args.name)), 'w') as f:
+with open(osp.join(CUR_DIR, "dataset/data_path.json"), 'w') as f:
     json.dump(dataset, f)
 
+print('Generating waypoints')
+
+with open(osp.join(CUR_DIR, "dataset/data_path.json"), 'r') as _file:
+    data_path = json.load(_file)
+
+dataset_waypoint = []
+for data_point in data_path:
+    start_pos, goal_pos, occ_grid, path = data_point
+    for i in range(1, len(path)):
+        prev_pos = path[i - 1]
+        current_pos = path[i]
+        dataset_waypoint.append([prev_pos, goal_pos, occ_grid, current_pos])
+
+with open(osp.join(CUR_DIR, "dataset/data_waypoints.json"), 'w') as f:
+    json.dump(dataset_waypoint, f)
 
