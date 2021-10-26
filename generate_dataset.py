@@ -7,7 +7,6 @@ import sys
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-import shutil
 import json
 from PIL import Image
 import itertools
@@ -16,14 +15,8 @@ import random
 import utils
 from env.maze_2d import Maze2D
 
-
 CUR_DIR = osp.dirname(osp.abspath(__file__))
 DATASET_DIR = osp.join(CUR_DIR, "dataset")
-
-def state_to_numpy(state):
-    strlist = state.split(',')
-    val_list = [float(s) for s in strlist]
-    return np.array(val_list)
 
 maze = Maze2D(gui=False)
 
