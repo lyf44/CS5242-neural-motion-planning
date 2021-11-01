@@ -4,3 +4,8 @@
 
 dataset/*
 models/*
+
+dataset
+models
+
+*.zip
