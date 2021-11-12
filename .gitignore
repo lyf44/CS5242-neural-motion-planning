@@ -3,8 +3,10 @@
 *pyc
 
 dataset/*
+test_dataset/*
 models/*
 dataset
 models
 test_dataset
 
+*.zip

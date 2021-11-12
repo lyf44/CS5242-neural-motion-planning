@@ -18,20 +18,21 @@ from env.maze_2d import Maze2D
 CUR_DIR = osp.dirname(osp.abspath(__file__))
 DATASET_DIR = osp.join(CUR_DIR, "dataset")
 
-maze = Maze2D(gui=False)
+maze = Maze2D()
 
-env_num = 200
+env_num = 600
 
 sparse_num = 100
 dense_num = 500
 
 for i in range(env_num):
     # save
-    directory = osp.join(DATASET_DIR, "{}".format(i))
+    print("Generating env {}".format(i))
+    directory = osp.join(DATASET_DIR, "{}".format(i + 400))
     if not osp.exists(directory):
         os.makedirs(directory)
 
-    num_of_boxes = 5 + i // 50
+    num_of_boxes = random.randint(5, 10)
 
     # env
     maze.clear_obstacles()

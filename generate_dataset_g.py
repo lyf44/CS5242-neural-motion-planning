@@ -26,14 +26,14 @@ def state_to_numpy(state):
     val_list = [float(s) for s in strlist]
     return np.array(val_list)
 
-maze = Maze2D(gui=False)
+maze = Maze2D()
 
-env_num = 200
+env_num = 1000
 start_num = 500
 
 # Generate trajectories
 dataset = []
-for i in range(env_num):
+for i in range(400, env_num):
     print("generating paths in env {}".format(i))
     maze.clear_obstacles()
 
@@ -77,12 +77,12 @@ for i in range(env_num):
 
             dataset.append([start_pos, goal_pos, occ_grid, path])
 
-with open(osp.join(CUR_DIR, "dataset/data_path.json"), 'w') as f:
+with open(osp.join(CUR_DIR, "dataset/data_path_2.json"), 'w') as f:
     json.dump(dataset, f)
 
 print('Generating waypoints')
 
-with open(osp.join(CUR_DIR, "dataset/data_path.json"), 'r') as _file:
+with open(osp.join(CUR_DIR, "dataset/data_path_2.json"), 'r') as _file:
     data_path = json.load(_file)
 
 dataset_waypoint = []
@@ -93,6 +93,6 @@ for data_point in data_path:
         current_pos = path[i]
         dataset_waypoint.append([prev_pos, goal_pos, occ_grid, current_pos])
 
-with open(osp.join(CUR_DIR, "dataset/data_waypoints.json"), 'w') as f:
+with open(osp.join(CUR_DIR, "dataset/data_waypoints_2.json"), 'w') as f:
     json.dump(dataset_waypoint, f)
 
