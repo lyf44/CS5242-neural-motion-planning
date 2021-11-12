@@ -4,3 +4,7 @@
 
 dataset/*
 models/*
+dataset
+models
+test_dataset
+
