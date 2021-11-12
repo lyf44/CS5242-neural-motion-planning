@@ -3,6 +3,7 @@
 *pyc
 
 dataset/*
+test_dataset/*
 models/*
 
 dataset
