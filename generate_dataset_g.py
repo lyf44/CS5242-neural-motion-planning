@@ -28,8 +28,8 @@ def state_to_numpy(state):
 
 maze = Maze2D()
 
-env_num = 200
-start_num = 500
+env_num = 500
+path_per_env = 1000
 
 # Generate trajectories
 dataset = []
@@ -68,10 +68,10 @@ for i in range(env_num):
                 dataset.append([start_pos, goal_pos, occ_grid, path])
                 path_num += 1
 
-            if path_num >= 5000:
+            if path_num >= path_per_env:
                 break
 
-        if path_num >= 5000:
+        if path_num >= path_per_env:
             break
 
     print(len(dataset))
