@@ -28,12 +28,12 @@ def state_to_numpy(state):
 
 maze = Maze2D()
 
-env_num = 1000
+env_num = 200
 start_num = 500
 
 # Generate trajectories
 dataset = []
-for i in range(400, env_num):
+for i in range(env_num):
     print("generating paths in env {}".format(i))
     maze.clear_obstacles()
 
@@ -45,6 +45,7 @@ for i in range(400, env_num):
     dense_G = nx.read_graphml(osp.join(data_dir, "dense_g.graphml"))
     occ_grid = np.loadtxt(osp.join(data_dir, "occ_grid.txt")).tolist()
 
+    path_num = 0
     # sample trajectories
     for start_n in dense_G.nodes():
         if dense_G.nodes[start_n]['col']:
@@ -54,28 +55,26 @@ for i in range(400, env_num):
             if dense_G.nodes[goal_n]['col']:
                 continue
 
-        goal_pos = utils.state_to_numpy(dense_G.nodes[goal_n]['coords']).tolist()
-        path_nodes, dis = astar.astar(dense_G, start_n, goal_n, occ_grid, None, None, None)
+            start_pos = utils.state_to_numpy(dense_G.nodes[start_n]['coords']).tolist()
+            goal_pos = utils.state_to_numpy(dense_G.nodes[goal_n]['coords']).tolist()
+            path_nodes, dis = astar.astar(dense_G, start_n, goal_n, occ_grid, None, None, None)
 
-        # sanity check
-        total_dist = 0
-        if len(path_nodes) > 2:
-            for i, node in enumerate(path_nodes):
-                if i < len(path_nodes) - 1:
-                    start_pos = utils.state_to_numpy(dense_G.nodes[node]['coords']).tolist()
-                    next_pos = utils.state_to_numpy(dense_G.nodes[path_nodes[i + 1]]['coords']).tolist()
-                    dist = utils.calc_weight_states(start_pos, next_pos)
-                    total_dist += dist
-            # print(total_dist, dis)
-            assert np.allclose(total_dist, dis)
+            if len(path_nodes) > 2:
+                path = []
+                for i, node in enumerate(path_nodes):
+                    node_pos = utils.state_to_numpy(dense_G.nodes[node]['coords']).tolist()
+                    path.append(node_pos)
 
-        if len(path_nodes) > 2:
-            path = []
-            for i, node in enumerate(path_nodes):
-                node_pos = utils.state_to_numpy(dense_G.nodes[node]['coords']).tolist()
-                path.append(node_pos)
+                dataset.append([start_pos, goal_pos, occ_grid, path])
+                path_num += 1
 
-            dataset.append([start_pos, goal_pos, occ_grid, path])
+            if path_num >= 5000:
+                break
+
+        if path_num >= 5000:
+            break
+
+    print(len(dataset))
 
 with open(osp.join(CUR_DIR, "dataset/data_path_2.json"), 'w') as f:
     json.dump(dataset, f)
